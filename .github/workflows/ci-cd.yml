@@ -44,12 +44,18 @@ jobs:
       run: npm audit
       continue-on-error: true
 
-    - name: Run Snyk security scan
+    - name: Run Snyk test
       uses: snyk/actions/node@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        args: --severity-threshold=high --all-projects --monitor
+        args: test --all-projects --severity-threshold=high
+      continue-on-error: true
+
+    - name: Monitor Snyk project
+      run: npx snyk monitor --all-projects
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
 
   quality:
