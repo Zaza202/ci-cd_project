@@ -96,12 +96,3 @@ jobs:
         tags: ${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:latest
         cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:buildcache
         cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:buildcache,mode=max
-
-    - name: Deploy to GCP Cloud Run
-      uses: google-github-actions/deploy-cloudrun@v2
-      with:
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service: ci-cd-demo
-        region: us-central1
-        image: ${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:latest
