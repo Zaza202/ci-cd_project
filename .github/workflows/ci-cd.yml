@@ -56,6 +56,18 @@ jobs:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
 
+    - name: Monitor Snyk (package.json)
+      run: npx snyk monitor --file=package.json
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      continue-on-error: true
+
+    - name: Monitor Snyk (Dockerfile)
+      run: npx snyk monitor --file=Dockerfile --project-name=dockerfile
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      continue-on-error: true
+
   quality:
     name: Code Quality
     needs: build
