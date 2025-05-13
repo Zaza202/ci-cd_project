@@ -40,30 +40,44 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Install Snyk CLI
+      run: npm install -g snyk@1.1296.0
+
+    - name: Print working directory and Snyk version
+      run: |
+        pwd
+        snyk --version
+
     - name: Run npm audit
       run: npm audit
       continue-on-error: true
 
     - name: Run Snyk test (all projects)
-      run: npx snyk test --all-projects --detection-depth=4 --severity-threshold=low
+      run: snyk test --all-projects --detection-depth=4 --severity-threshold=low --json > snyk-results.json
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
 
+    - name: Upload Snyk results artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: snyk-results
+        path: snyk-results.json
+
     - name: Monitor Snyk project (all projects)
-      run: npx snyk monitor --all-projects --detection-depth=4
+      run: snyk monitor --all-projects --detection-depth=4
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
 
     - name: Monitor Snyk (package.json)
-      run: npx snyk monitor --file=package.json
+      run: snyk monitor --file=package.json
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
 
     - name: Monitor Snyk (Dockerfile)
-      run: npx snyk monitor --file=Dockerfile --project-name=dockerfile
+      run: snyk monitor --file=Dockerfile --project-name=dockerfile
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
