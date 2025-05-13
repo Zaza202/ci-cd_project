@@ -10,120 +10,154 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Run linting
-      run: npm run lint || echo "No linting configured"
+      - name: Run linting
+        run: npm run lint || echo "No linting configured"
 
-    - name: Run tests
-      run: npm test
+      - name: Run tests
+        run: npm test
 
   security:
     name: Security Scan
     needs: build
     runs-on: ubuntu-latest
     continue-on-error: true
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install Snyk CLI
-      run: npm install -g snyk@1.1296.0
+      - name: Set up Docker (for image build)
+        uses: docker/setup-buildx-action@v3
 
-    - name: Print working directory and Snyk version
-      run: |
-        pwd
-        snyk --version
+      - name: Build Docker image for scan
+        run: docker build -t ci-cd-demo-scan .
 
-    - name: Run npm audit
-      run: npm audit
-      continue-on-error: true
+      - name: Install Snyk CLI
+        run: npm install -g snyk@1.1296.0
 
-    - name: Run Snyk test (all projects)
-      run: snyk test --all-projects --detection-depth=4 --severity-threshold=low --json > snyk-results.json
-    
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      continue-on-error: true
+      - name: Print working directory and Snyk version
+        run: |
+          pwd
+          snyk --version
 
-    - name: Upload Snyk results artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: snyk-results
-        path: snyk-results.json
+      - name: Run npm audit
+        run: npm audit
+        continue-on-error: true
 
-    - name: Monitor Snyk project (all projects)
-      run: snyk monitor --all-projects --detection-depth=4
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      continue-on-error: true
+      - name: Run Snyk test (all projects, full depth)
+        run: |
+          snyk test \
+            --all-projects \
+            --scan-all-unmanaged \
+            --prune-repeated-subdependencies \
+            --detection-depth=6 \
+            --severity-threshold=low \
+            --json > snyk-results.json
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
 
-    - name: Monitor Snyk (package.json)
-      run: snyk monitor --file=package.json
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      continue-on-error: true
+      - name: Run Snyk Docker test
+        run: |
+          snyk test \
+            --docker ci-cd-demo-scan \
+            --file=Dockerfile \
+            --json > snyk-docker-results.json
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
 
-    - name: Monitor Snyk (Dockerfile)
-      run: snyk monitor --file=Dockerfile --project-name=dockerfile
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      continue-on-error: true
+      - name: Upload Snyk results artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: snyk-results
+          path: |
+            snyk-results.json
+            snyk-docker-results.json
+
+      - name: Monitor Snyk project (all code projects)
+        run: snyk monitor \
+              --all-projects \
+              --scan-all-unmanaged \
+              --prune-repeated-subdependencies \
+              --detection-depth=6 \
+              --project-name=ci-cd_project
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Monitor Snyk (package.json)
+        run: snyk monitor \
+              --file=package.json \
+              --project-name=ci-cd_project
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      - name: Monitor Snyk (Dockerfile)
+        run: snyk monitor \
+              --docker ci-cd-demo-scan \
+              --file=Dockerfile \
+              --project-name=ci-cd_project-docker
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
 
   quality:
     name: Code Quality
     needs: build
     runs-on: ubuntu-latest
     continue-on-error: true
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
 
-    - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: https://sonarcloud.io
-      continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        continue-on-error: true
 
   deploy:
     name: Deploy
     needs: [build, security, quality]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:latest
-        cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:buildcache
-        cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:buildcache,mode=max
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/ci-cd-demo:buildcache,mode=max
