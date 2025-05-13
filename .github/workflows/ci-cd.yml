@@ -54,6 +54,7 @@ jobs:
 
     - name: Run Snyk test (all projects)
       run: snyk test --all-projects --detection-depth=4 --severity-threshold=low --json > snyk-results.json
+    
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       continue-on-error: true
