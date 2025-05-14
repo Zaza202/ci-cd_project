@@ -81,13 +81,11 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-      - name: Upload Snyk results artifacts
+      - name: Upload Snyk results artifact
         uses: actions/upload-artifact@v3
         with:
           name: snyk-results
-          path: |
-            snyk-results.json
-            snyk-docker-results.json
+          path: snyk-results.json
 
       - name: Monitor Snyk project (all code projects)
         run: snyk monitor \
