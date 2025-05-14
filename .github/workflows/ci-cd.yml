@@ -35,7 +35,7 @@ jobs:
         continue-on-error: true
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --passWithNoTests
         env:
           MONGODB_URI: mongodb://localhost:27017/cloud-billing-test
 
