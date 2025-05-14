@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ci-cd-project-deployment
+  labels:
+    app: ci-cd-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ci-cd-project
+  template:
+    metadata:
+      labels:
+        app: ci-cd-project
+    spec:
+      containers:
+        - name: ci-cd-project-container
+          image: ci-cd_project:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
