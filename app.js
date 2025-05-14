@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cloud-billing', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://mongodb:27017/cloud-billing', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => {
