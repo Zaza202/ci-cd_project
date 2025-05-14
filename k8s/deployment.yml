@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ci-cd-project-deployment
+  name: cloud-billing-app-deployment
   labels:
-    app: ci-cd-project
+    app: cloud-billing-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ci-cd-project
+      app: cloud-billing-app
   template:
     metadata:
       labels:
-        app: ci-cd-project
+        app: cloud-billing-app
     spec:
       containers:
-        - name: ci-cd-project-container
-          image: ci-cd_project:latest
+        - name: cloud-billing-app-container
+          image: cloud-billing-app:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
