@@ -1,15 +1,23 @@
 # Base image
-FROM node:18
+FROM node:20-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy files
+# Copy package files
 COPY package*.json ./
-RUN npm install
 
+# Install dependencies
+RUN npm ci
+
+# Copy source files
 COPY . .
 
-# Expose and run
+# Create public directory if it doesn't exist
+RUN mkdir -p public
+
+# Expose port
 EXPOSE 3000
+
+# Start the application
 CMD ["npm", "start"]
