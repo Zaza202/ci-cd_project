@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,7 +14,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cloud-billing', {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
 }).then(() => {
   console.log('Connected to MongoDB');
 }).catch((error) => {
@@ -27,36 +28,36 @@ const GCP_INSTANCE_TYPES = {
     cpu: 2,
     memory: 8,
     pricePerHour: 0.067012,
-    pricePerMonth: 48.25
+    pricePerMonth: 48.25,
   },
   'e2-standard-4': {
     name: 'E2 Standard (4 vCPU)',
     cpu: 4,
     memory: 16,
     pricePerHour: 0.134024,
-    pricePerMonth: 96.50
+    pricePerMonth: 96.50,
   },
   'n2-standard-2': {
     name: 'N2 Standard (2 vCPU)',
     cpu: 2,
     memory: 8,
     pricePerHour: 0.097014,
-    pricePerMonth: 69.85
+    pricePerMonth: 69.85,
   },
   'n2-standard-4': {
     name: 'N2 Standard (4 vCPU)',
     cpu: 4,
     memory: 16,
     pricePerHour: 0.194028,
-    pricePerMonth: 139.70
-  }
+    pricePerMonth: 139.70,
+  },
 };
 
 // Storage Pricing (per GB per month)
 const STORAGE_PRICING = {
-  'standard': 0.02,  // Standard persistent disk
-  'ssd': 0.17,       // SSD persistent disk
-  'network': 0.12    // Network storage
+  standard: 0.02, // Standard persistent disk
+  ssd: 0.17, // SSD persistent disk
+  network: 0.12, // Network storage
 };
 
 // Billing Schema
@@ -69,7 +70,7 @@ const billingSchema = new mongoose.Schema({
   hours: Number,
   cost: Number,
   date: { type: Date, default: Date.now },
-  userId: String
+  userId: String,
 });
 
 const Billing = mongoose.model('Billing', billingSchema);
@@ -87,7 +88,7 @@ function calculateCost(instanceType, storageType, storageSize, hours) {
   return {
     instanceCost,
     storageCost,
-    totalCost: instanceCost + storageCost
+    totalCost: instanceCost + storageCost,
   };
 }
 
@@ -111,9 +112,14 @@ app.get('/api/billing', async (req, res) => {
 
 app.post('/api/billing', async (req, res) => {
   try {
-    const { instanceType, storageType, storageSize, hours } = req.body;
+    const {
+      instanceType,
+      storageType,
+      storageSize,
+      hours,
+    } = req.body;
     const costs = calculateCost(instanceType, storageType, storageSize, hours);
-    
+
     const billing = new Billing({
       instanceType,
       cpu: GCP_INSTANCE_TYPES[instanceType].cpu,
@@ -122,11 +128,12 @@ app.post('/api/billing', async (req, res) => {
       storageSize,
       hours,
       cost: costs.totalCost,
-      userId: req.body.userId || 'user123'
+      userId: req.body.userId || 'user123',
     });
 
     const newBilling = await billing.save();
-    res.status(201).json(newBilling);
+    res.status(201)
+      .json(newBilling);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -140,9 +147,9 @@ app.get('/api/billing/summary', async (req, res) => {
           _id: '$instanceType',
           totalCost: { $sum: '$cost' },
           totalHours: { $sum: '$hours' },
-          totalStorage: { $sum: '$storageSize' }
-        }
-      }
+          totalStorage: { $sum: '$storageSize' },
+        },
+      },
     ]);
     res.json(summary);
   } catch (error) {
